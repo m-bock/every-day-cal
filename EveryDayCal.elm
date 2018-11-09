@@ -37,6 +37,26 @@ constants =
 
 
 
+--colors : { bg : Color, fg : Color }
+
+
+colors =
+    { bg = rgb 34 24 67
+    , day = rgb 14 74 37
+    , empty = rgb 56 14 89
+    }
+
+
+
+-- UTILS
+
+
+empties : List Int
+empties =
+    List.map (\x -> constants.maxDays - x) constants.monthsLengths
+
+
+
 -- UPDATE
 
 
@@ -58,23 +78,23 @@ viewYear : Model -> Html Msg
 viewYear model =
     let
         styleContainer =
-            [ property "display" "grid"
+            [ property "display" "inline-grid"
             , property "grid-auto-flow" "column"
             , property "grid-template-columns" ("repeat(" ++ toString constants.nMonths ++ ", 1fr)")
             , property "grid-template-rows" ("repeat(" ++ toString constants.maxDays ++ ", 1fr)")
+            , property "grid-gap" "1px"
+            , backgroundColor colors.bg
             ]
 
         styleItem =
-            []
+            [ Css.width (px 20)
+            , Css.height (px 20)
+
+            --, backgroundColor colors.fg
+            ]
     in
     div [ css styleContainer ]
-        [ div [ css styleItem ] [ text "X" ]
-        , div [ css styleItem ] [ text "Y" ]
-        , div [ css styleItem ] [ text "Z" ]
-        , div [ css styleItem ] [ text "X" ]
-        , div [ css styleItem ] [ text "Y" ]
-        , div [ css styleItem ] [ text "Z" ]
-        ]
+        (List.repeat 365 (div [ css styleItem ] []))
 
 
 view : Model -> Html Msg
@@ -82,7 +102,7 @@ view model =
     div []
         [ h1 []
             [ text "Every Day Cal"
-            , viewYear model
+            , div [] [ viewYear model ]
             ]
         ]
 
