@@ -21,8 +21,8 @@ chunkBySizes ns xs =
             []
 
 
-getCalendar : DayOfYear -> Calendar
-getCalendar n =
+getCalendar : Int -> Calendar
+getCalendar dayOfYear =
     let
         max =
             List.sum constants.monthsLengths
@@ -30,11 +30,7 @@ getCalendar n =
         days =
             List.range 0 constants.daysPerYear
                 |> List.map
-                    (\index ->
-                        { dayOfYear = index
-                        , checked = index < n
-                        }
-                    )
+                    (\index -> { dayOfYear = index, checked = index < dayOfYear })
     in
     { months =
         days
@@ -43,7 +39,7 @@ getCalendar n =
     }
 
 
-getDayOfYear : Month -> Day -> DayOfYear
+getDayOfYear : Int -> Int -> Int
 getDayOfYear month day =
     List.take month constants.monthsLengths
         |> List.sum
@@ -67,10 +63,8 @@ constants :
     , maxDays : Int
     }
 constants =
-    { daysPerYear =
-        365
-    , monthsLengths =
-        [ 31, 28, 31, 30, 31, 30, 31, 30, 31, 30, 31, 30 ]
+    { daysPerYear = 365
+    , monthsLengths = [ 31, 28, 31, 30, 31, 30, 31, 30, 31, 30, 31, 30 ]
     , maxDays = 31
     }
 
@@ -141,8 +135,7 @@ viewCalendarDay { checked, dayOfYear } =
             , Css.height (px length)
             ]
     in
-    div [ onClick Next, css style ]
-        []
+    div [ onClick Next, css style ] []
 
 
 viewCalendarMonth : CalendarMonth -> List (Html Msg)
@@ -183,8 +176,7 @@ viewCalendar { months } =
 
 viewDone : Html Msg
 viewDone =
-    div []
-        [ text copy.done ]
+    div [] [ text copy.done ]
 
 
 viewApp : Model -> Html Msg
@@ -196,8 +188,7 @@ viewApp model =
     case model of
         Playing { numberChecked } ->
             div [ css style ]
-                [ viewCalendar (getCalendar numberChecked)
-                ]
+                [ viewCalendar (getCalendar numberChecked) ]
 
         Done ->
             viewDone
@@ -207,8 +198,7 @@ view : Model -> Html Msg
 view model =
     div []
         [ h1 []
-            [ text copy.title
-            ]
+            [ text copy.title ]
         , viewApp model
         ]
 

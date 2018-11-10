@@ -2,24 +2,12 @@ module Types exposing (..)
 
 
 type Model
-    = Playing { numberChecked : DayOfYear }
+    = Playing { numberChecked : Int }
     | Done
-
-
-type alias Day =
-    Int
-
-
-type alias DayOfYear =
-    Int
 
 
 type Msg
     = Next
-
-
-type alias Month =
-    Int
 
 
 type alias Calendar =
