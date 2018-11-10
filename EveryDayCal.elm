@@ -1,19 +1,60 @@
 module EveryDayCal exposing (..)
 
+import Color as Color exposing (..)
 import Css as Css exposing (..)
 import Html.Styled as Html exposing (..)
 import Html.Styled.Attributes exposing (css)
+import Html.Styled.Events exposing (onClick)
+import Types exposing (..)
 
 
--- TYPE
+-- UTIL
 
 
-type alias Model =
-    Int
+chunkBySizes : List Int -> List a -> List (List a)
+chunkBySizes ns xs =
+    case ns of
+        n :: nRest ->
+            List.take n xs :: chunkBySizes nRest (List.drop n xs)
+
+        [] ->
+            []
 
 
-type Msg
-    = NoOp
+getCalendar : DayOfYear -> Calendar
+getCalendar n =
+    let
+        max =
+            List.sum constants.monthsLengths
+
+        days =
+            List.range 0 constants.daysPerYear
+                |> List.map
+                    (\index ->
+                        { dayOfYear = index
+                        , checked = index < n
+                        }
+                    )
+    in
+    { months =
+        days
+            |> chunkBySizes constants.monthsLengths
+            |> List.map (\days -> { days = days })
+    }
+
+
+getDayOfYear : Month -> Day -> DayOfYear
+getDayOfYear month day =
+    List.take month constants.monthsLengths
+        |> List.sum
+        |> (+) day
+
+
+toCssColor : Color.Color -> Css.Color
+toCssColor color =
+    color
+        |> Color.toRgb
+        |> (\{ red, green, blue, alpha } -> Css.rgba red green blue alpha)
 
 
 
@@ -23,7 +64,6 @@ type Msg
 constants :
     { daysPerYear : Int
     , monthsLengths : List Int
-    , nMonths : Int
     , maxDays : Int
     }
 constants =
@@ -31,29 +71,30 @@ constants =
         365
     , monthsLengths =
         [ 31, 28, 31, 30, 31, 30, 31, 30, 31, 30, 31, 30 ]
-    , nMonths = 1
     , maxDays = 31
     }
 
 
-
---colors : { bg : Color, fg : Color }
-
-
-colors =
-    { bg = rgb 34 24 67
-    , day = rgb 14 74 37
-    , empty = rgb 56 14 89
+copy :
+    { done : String
+    , title : String
+    }
+copy =
+    { done = "done"
+    , title = "Every Day Cal"
     }
 
 
-
--- UTILS
-
-
-empties : List Int
-empties =
-    List.map (\x -> constants.maxDays - x) constants.monthsLengths
+colors :
+    { bg : Color.Color
+    , dayChecked : Color.Color
+    , dayUnchecked : Color.Color
+    }
+colors =
+    { bg = lightGray
+    , dayChecked = red
+    , dayUnchecked = gray
+    }
 
 
 
@@ -62,48 +103,113 @@ empties =
 
 initModel : Model
 initModel =
-    0
+    Playing { numberChecked = 0 }
 
 
 update : Msg -> Model -> Model
 update msg model =
-    model
+    case ( msg, model ) of
+        ( Next, Playing { numberChecked } ) ->
+            if numberChecked < (constants.daysPerYear - 1) then
+                Playing { numberChecked = numberChecked + 1 }
+            else
+                Done
+
+        _ ->
+            model
 
 
 
 -- VIEW
 
 
-viewYear : Model -> Html Msg
-viewYear model =
+viewCalendarDay : CalendarDay -> Html Msg
+viewCalendarDay { checked, dayOfYear } =
     let
-        styleContainer =
-            [ property "display" "inline-grid"
-            , property "grid-auto-flow" "column"
-            , property "grid-template-columns" ("repeat(" ++ toString constants.nMonths ++ ", 1fr)")
-            , property "grid-template-rows" ("repeat(" ++ toString constants.maxDays ++ ", 1fr)")
-            , property "grid-gap" "1px"
-            , backgroundColor colors.bg
-            ]
+        length =
+            20
 
-        styleItem =
-            [ Css.width (px 20)
-            , Css.height (px 20)
-
-            --, backgroundColor colors.fg
+        style =
+            [ backgroundColor <|
+                toCssColor
+                    (if checked then
+                        colors.dayChecked
+                     else
+                        colors.dayUnchecked
+                    )
+            , Css.width (px length)
+            , Css.height (px length)
             ]
     in
-    div [ css styleContainer ]
-        (List.repeat 365 (div [ css styleItem ] []))
+    div [ onClick Next, css style ]
+        []
+
+
+viewCalendarMonth : CalendarMonth -> List (Html Msg)
+viewCalendarMonth { days } =
+    List.map viewCalendarDay days
+
+
+addEmptyDays : List (Html Msg) -> List (Html Msg)
+addEmptyDays days =
+    let
+        n =
+            constants.maxDays - List.length days
+    in
+    days ++ List.repeat n (div [] [])
+
+
+viewCalendar : Calendar -> Html Msg
+viewCalendar { months } =
+    let
+        repeat1fr n =
+            "repeat(" ++ toString n ++ ", 1fr)"
+
+        nMonths =
+            List.length constants.monthsLengths
+
+        style =
+            [ property "display" "inline-grid"
+            , property "grid-auto-flow" "column"
+            , property "grid-template-columns" (repeat1fr nMonths)
+            , property "grid-template-rows" (repeat1fr constants.maxDays)
+            , property "grid-gap" "1px"
+            , backgroundColor (toCssColor colors.bg)
+            ]
+    in
+    div [ css style ]
+        (List.concatMap (viewCalendarMonth >> addEmptyDays) months)
+
+
+viewDone : Html Msg
+viewDone =
+    div []
+        [ text copy.done ]
+
+
+viewApp : Model -> Html Msg
+viewApp model =
+    let
+        style =
+            [ textAlign center ]
+    in
+    case model of
+        Playing { numberChecked } ->
+            div [ css style ]
+                [ viewCalendar (getCalendar numberChecked)
+                ]
+
+        Done ->
+            viewDone
 
 
 view : Model -> Html Msg
 view model =
     div []
         [ h1 []
-            [ text "Every Day Cal"
-            , div [] [ viewYear model ]
+            [ text copy.title
             ]
+        , viewApp model
         ]
 
 
